@@ -84,18 +84,34 @@ Modifies the state of a contract
 * `args`: array of method's input parameters
 
 ```
-PUT /contracts/0xfdd64188d6134f955dda2bd55234acefa2779da6 HTTP/1.1
-Host: localhost:8080
-Content-Type: application/json
-Cache-Control: no-cache
-Postman-Token: ba57f88f-81b1-49ad-d5b8-72da90da31dd
-
-{
+curl -X PUT -H "Content-Type: application/json" -H "Cache-Control: no-cache" -H "Postman-Token: 90518cc7-f2ef-345b-c1a3-c7e5f022aa3b" -d '{
     "solidityContract": "contract SimpleStorage { uint storedData; function set(uint x) { storedData = x; } function get() constant returns (uint retVal) { return storedData; } }",
     "accountAddress": "0x03733b713032e9040d04acd4720bedaa717378df",
     "contractKey": "SimpleStorage",
     "method": "set",
     "args": ["53"]
-}
+}' "http://localhost:8080/contracts/0xfdd64188d6134f955dda2bd55234acefa2779da6"
 ```
-## Java library
+
+#### Contract run:
+Executes a contract
+##### Path
+`POST` /contracts/${contractAddress}
+
+##### Parameters
+* `solidityContract`: content of the Solidity Contract
+* `accountAddress`: address of the account
+* `contractKey`: Solidity contract name
+* `method`: method to execute
+
+```
+curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -H "Postman-Token: 0b8745d2-ebaa-cd6c-da82-4f075c47e5bb" -d '{
+    "solidityContract": "contract SimpleStorage { uint storedData; function set(uint x) { storedData = x; } function get() constant returns (uint retVal) { return storedData; } }",
+    "accountAddress": "0x03733b713032e9040d04acd4720bedaa717378df",
+    "contractKey": "SimpleStorage",
+    "method": "get"
+}' "http://localhost:8080/contracts/0xfdd64188d6134f955dda2bd55234acefa2779da6"
+```
+
+#### License
+The ethereum-api is released under the MIT permissive free software license.
