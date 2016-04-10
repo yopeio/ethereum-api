@@ -11,7 +11,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-
+@ToString
 public class Receipt implements Serializable {
     @Getter
     private String transactionHash;
