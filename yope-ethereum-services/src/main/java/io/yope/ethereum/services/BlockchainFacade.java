@@ -2,9 +2,8 @@ package io.yope.ethereum.services;
 
 import com.cegeka.tetherj.NoSuchContractMethod;
 import io.yope.ethereum.exceptions.ExceededGasException;
-import io.yope.ethereum.model.CreateContractRequest;
 import io.yope.ethereum.model.Receipt;
-import io.yope.ethereum.model.UpdateRunContractRequest;
+import io.yope.ethereum.visitor.BlockchainVisitor;
 
 import java.util.Map;
 
@@ -14,31 +13,29 @@ import java.util.Map;
 public interface BlockchainFacade {
     /**
      * Write contracts into the blockchain.
-     * @param request
+     * @param visitor
      * @return
      * @throws ExceededGasException
      */
-    Map<String, Receipt> createContracts(CreateContractRequest request) throws ExceededGasException;
+    Map<String, Receipt> createContracts(BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod;
 
     /**
-     * Modify a stored contract.
-     * @param contractAddress
-     * @param request
+     * Modify a contract stored into the blockchain.
+     * @param visitor
      * @return
      * @throws NoSuchContractMethod
      * @throws ExceededGasException
      */
-    Receipt modifyContract(String contractAddress, UpdateRunContractRequest request) throws NoSuchContractMethod, ExceededGasException;
+    Receipt modifyContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException;
 
     /**
-     * Run a specific contract.
-     * @param contractAddress
-     * @param request
+     * Run a contract stored into the blockchain.
+     * @param visitor
      * @param <T>
      * @return
      * @throws NoSuchContractMethod
      */
-    <T> T runContract(String contractAddress, UpdateRunContractRequest request) throws NoSuchContractMethod;
+    <T> T runContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod;
 
     /**
      * Get account balance.

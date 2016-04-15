@@ -12,8 +12,8 @@ import io.yope.ethereum.exceptions.ExceededGasException;
 import io.yope.ethereum.model.EthTransaction;
 import io.yope.ethereum.model.Filter;
 import io.yope.ethereum.model.Receipt;
-import io.yope.ethereum.model.UpdateRunContractRequest;
 import io.yope.ethereum.rpc.EthereumRpc;
+import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
@@ -35,12 +35,11 @@ public class ContractService {
     private long gasPrice;
 
 
-    public Map<String, Receipt> create(final String solidity, final String accountAddress, final long accountGas)
+    public Map<String, Receipt> create(final BlockchainVisitor visitor, final long accountGas)
             throws ExceededGasException {
         Map<String, Receipt> contracts = Maps.newHashMap();
         CompileOutput compiled =
-                ethereumRpc.eth_compileSolidity(
-                        removeLineBreaks(solidity)
+                ethereumRpc.eth_compileSolidity(visitor.getContractContent()
                 );
         for (String contractKey : compiled.getContractData().keySet()) {
             ContractData contract = compiled.getContractData().get(contractKey);
@@ -48,32 +47,32 @@ public class ContractService {
             String subCode = code.substring(2, code.length());
 
             long gas = decryptQuantity(ethereumRpc.eth_estimateGas(
-                    EthTransaction.builder().data(subCode).from(accountAddress).build()
+                    EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).build()
             ));
 
-            checkGas(accountAddress, accountGas, gas);
+            checkGas(visitor.getAccountAddress(), accountGas, gas);
 
             String txHash = ethereumRpc.eth_sendTransaction(
-                    EthTransaction.builder().data(subCode).from(accountAddress).gas(gas).gasPrice(gasPrice).build());
+                    EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).gas(gas).gasPrice(gasPrice).build());
             Receipt receipt = getReceipt(txHash, null);
 
-            String filter = ethereumRpc.eth_newFilter(Filter.builder().address(contract.getCode()).build());
+//            String filter = ethereumRpc.eth_newFilter(Filter.builder().address(contract.getCode()).build());
             EthSmartContractFactory factory = new EthSmartContractFactory(contract);
-            EthSmartContract smartContract = factory.getContract(receipt.getContractAddress());
+//            EthSmartContract smartContract = factory.getContract(receipt.getContractAddress());
             contracts.put(contractKey, receipt);
         }
         return contracts;
     }
 
-    public Receipt modify(final String contractAddress, final UpdateRunContractRequest request, long accountGas) throws NoSuchContractMethod, ExceededGasException {
-        EthSmartContract smartContract = getSmartContract(request.getSolidityContract(), request.getContractKey(), contractAddress);
-        String modMethodHash = callModMethod(smartContract, request.getMethod(), request.getAccountAddress(), accountGas, request.getArgs());
+    public Receipt modify(final String contractAddress, final BlockchainVisitor visitor, long accountGas) throws NoSuchContractMethod, ExceededGasException {
+        EthSmartContract smartContract = getSmartContract(visitor.getContractContent(),visitor.getContractKey(), contractAddress);
+        String modMethodHash = callModMethod(smartContract, visitor.getModifyMethod(), visitor.getAccountAddress(), accountGas, visitor.getArgs());
         return getReceipt(modMethodHash, contractAddress);
     }
 
-    public<T> T run(final String contractAddress, UpdateRunContractRequest request) throws NoSuchContractMethod {
-        EthSmartContract smartContract = getSmartContract(request.getSolidityContract(), request.getContractKey(), contractAddress);
-        return callConstantMethod(smartContract, request.getMethod(), request.getArgs());
+    public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
+        EthSmartContract smartContract = getSmartContract(visitor.getContractContent(), visitor.getContractKey(), contractAddress);
+        return callConstantMethod(smartContract, visitor.getRunMethod(), visitor.getArgs());
     }
 
     private void checkGas(String accountAddress, long accountGas, long gas) throws ExceededGasException {
