@@ -10,7 +10,6 @@ import com.cegeka.tetherj.pojo.ContractData;
 import com.google.common.collect.Maps;
 import io.yope.ethereum.exceptions.ExceededGasException;
 import io.yope.ethereum.model.EthTransaction;
-import io.yope.ethereum.model.Filter;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.rpc.EthereumRpc;
 import io.yope.ethereum.visitor.BlockchainVisitor;
@@ -66,13 +65,13 @@ public class ContractService {
 
     public Receipt modify(final String contractAddress, final BlockchainVisitor visitor, long accountGas) throws NoSuchContractMethod, ExceededGasException {
         EthSmartContract smartContract = getSmartContract(visitor.getContractContent(),visitor.getContractKey(), contractAddress);
-        String modMethodHash = callModMethod(smartContract, visitor.getModifyMethod(), visitor.getAccountAddress(), accountGas, visitor.getArgs());
+        String modMethodHash = callModMethod(smartContract, visitor.getModifyMethod(), visitor.getAccountAddress(), accountGas, visitor.getModifyArgs());
         return getReceipt(modMethodHash, contractAddress);
     }
 
     public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
         EthSmartContract smartContract = getSmartContract(visitor.getContractContent(), visitor.getContractKey(), contractAddress);
-        return callConstantMethod(smartContract, visitor.getRunMethod(), visitor.getArgs());
+        return callConstantMethod(smartContract, visitor.getRunMethod(), visitor.getRunArgs());
     }
 
     private void checkGas(String accountAddress, long accountGas, long gas) throws ExceededGasException {

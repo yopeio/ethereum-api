@@ -16,7 +16,9 @@ public abstract class BlockchainVisitor {
 
     public abstract String getModifyMethod();
 
-    public abstract Object[] getArgs();
+    public abstract Object[] getModifyArgs();
+
+    public abstract Object[] getRunArgs();
 
     public String getContractAddress() {
         return contractAddress;

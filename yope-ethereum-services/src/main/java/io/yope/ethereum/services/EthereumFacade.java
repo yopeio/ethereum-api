@@ -27,7 +27,7 @@ public class EthereumFacade implements BlockchainFacade {
             }
         }
         String contractAddr = receipts.values().iterator().next().getContractAddress();
-        if (ArrayUtils.isNotEmpty(visitor.getArgs()) ) {
+        if (ArrayUtils.isNotEmpty(visitor.getModifyArgs()) ) {
             Receipt receipt = modifyContract(contractAddr, visitor);
             log.debug("updated contract: {}", receipt);
         }
