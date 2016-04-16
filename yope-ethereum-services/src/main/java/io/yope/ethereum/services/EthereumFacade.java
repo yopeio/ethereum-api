@@ -2,6 +2,7 @@ package io.yope.ethereum.services;
 
 import com.cegeka.tetherj.NoSuchContractMethod;
 import io.yope.ethereum.exceptions.ExceededGasException;
+import io.yope.ethereum.model.Method;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
@@ -27,7 +28,7 @@ public class EthereumFacade implements BlockchainFacade {
             }
         }
         String contractAddr = receipts.values().iterator().next().getContractAddress();
-        if (ArrayUtils.isNotEmpty(visitor.getModifyArgs()) ) {
+        if (ArrayUtils.isNotEmpty(visitor.getMethod(Method.Type.MODIFY).getArgs()) ) {
             Receipt receipt = modifyContract(contractAddr, visitor);
             log.debug("updated contract: {}", receipt);
         }

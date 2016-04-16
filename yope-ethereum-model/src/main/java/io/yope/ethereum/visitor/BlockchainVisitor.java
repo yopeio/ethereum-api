@@ -1,10 +1,16 @@
 package io.yope.ethereum.visitor;
 
 
+import com.google.common.collect.Maps;
+import io.yope.ethereum.model.Method;
+
+import java.util.Map;
+
 public abstract class BlockchainVisitor {
 
     private String contractAddress;
     private String accountAddress;
+    private Map<Method.Type, Method> methods = Maps.newHashMap();
 
     public abstract String getContractKey();
 
@@ -12,13 +18,7 @@ public abstract class BlockchainVisitor {
 
     public abstract String getContractContent();
 
-    public abstract String getRunMethod();
-
-    public abstract String getModifyMethod();
-
-    public abstract Object[] getModifyArgs();
-
-    public abstract Object[] getRunArgs();
+    public abstract void addMethods();
 
     public String getContractAddress() {
         return contractAddress;
@@ -35,4 +35,14 @@ public abstract class BlockchainVisitor {
     public void setAccountAddress(String accountAddress) {
         this.accountAddress = accountAddress;
     }
+
+    public void addMethod(Method method) {
+        methods.put(method.getType(), method);
+    }
+
+    public Method getMethod(Method.Type type) {
+        return methods.get(type);
+    }
+
+
 }
