@@ -20,19 +20,8 @@ public class EthereumFacade implements BlockchainFacade {
     private AccountService accountService;
 
     @Override
-    public Map<String, Receipt> createContracts(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
-        Map<String, Receipt> receipts = contractService.create(visitor, getAccountBalance(visitor.getAccountAddress()));
-        if (log.isDebugEnabled()) {
-            for (Receipt receipt : receipts.values()) {
-                log.debug("created contract: {}", receipt);
-            }
-        }
-        String contractAddr = receipts.values().iterator().next().getContractAddress();
-        if (ArrayUtils.isNotEmpty(visitor.getMethod(Method.Type.MODIFY).getArgs()) ) {
-            Receipt receipt = modifyContract(contractAddr, visitor);
-            log.debug("updated contract: {}", receipt);
-        }
-        return receipts;
+    public Map<Receipt.Type, Receipt> createContracts(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
+        return contractService.create(visitor, getAccountBalance(visitor.getAccountAddress()));
     }
 
     @Override

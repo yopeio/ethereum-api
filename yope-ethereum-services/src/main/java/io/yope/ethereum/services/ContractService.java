@@ -15,6 +15,8 @@ import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.rpc.EthereumRpc;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
@@ -23,10 +25,11 @@ import static io.yope.ethereum.utils.EthereumUtil.decryptQuantity;
 import static io.yope.ethereum.utils.EthereumUtil.removeLineBreaks;
 
 @AllArgsConstructor
+@Slf4j
 public class ContractService {
 
     /*
-    timeout in milliseconds.
+    timeout in milliseconds of receipt waiting time.
      */
     private static final long TIMEOUT = 500;
 
@@ -34,43 +37,53 @@ public class ContractService {
 
     private long gasPrice;
 
-
-    public Map<String, Receipt> create(final BlockchainVisitor visitor, final long accountGas)
-            throws ExceededGasException {
-        Map<String, Receipt> contracts = Maps.newHashMap();
+    public Map<Receipt.Type, Receipt> create(final BlockchainVisitor visitor, final long accountGas)
+            throws ExceededGasException, NoSuchContractMethod {
+        addMethods(visitor);
+        Map<Receipt.Type, Receipt> receipts = Maps.newHashMap();
         CompileOutput compiled =
                 ethereumRpc.eth_compileSolidity(visitor.getContractContent()
                 );
-        for (String contractKey : compiled.getContractData().keySet()) {
-            ContractData contract = compiled.getContractData().get(contractKey);
-            String code = contract.getCode();
-            String subCode = code.substring(2, code.length());
+        ContractData contract = compiled.getContractData().get(visitor.getContractKey());
+        String code = contract.getCode();
+        String subCode = code.substring(2, code.length());
 
-            long gas = decryptQuantity(ethereumRpc.eth_estimateGas(
-                    EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).build()
-            ));
+        long gas = decryptQuantity(ethereumRpc.eth_estimateGas(
+                EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).build()
+        ));
 
-            checkGas(visitor.getAccountAddress(), accountGas, gas);
+        checkGas(visitor.getAccountAddress(), accountGas, gas);
 
-            String txHash = ethereumRpc.eth_sendTransaction(
-                    EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).gas(gas).gasPrice(gasPrice).build());
-            Receipt receipt = getReceipt(txHash, null);
+        String txHash = ethereumRpc.eth_sendTransaction(
+                EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).gas(gas).gasPrice(gasPrice).build());
+        Receipt receipt = getReceipt(txHash, null);
+        log.debug("created contract: {}", receipt);
+        receipts.put(Receipt.Type.CREATE, receipt);
 
-//            String filter = ethereumRpc.eth_newFilter(Filter.builder().address(contract.getCode()).build());
-            EthSmartContractFactory factory = new EthSmartContractFactory(contract);
-//            EthSmartContract smartContract = factory.getContract(receipt.getContractAddress());
-            contracts.put(contractKey, receipt);
+        String contractAddr = receipts.values().iterator().next().getContractAddress();
+        if (ArrayUtils.isNotEmpty(visitor.getMethod(Method.Type.MODIFY).getArgs()) ) {
+            Receipt modReceipt = modify(contractAddr, visitor, accountGas);
+            log.debug("updated contract: {}", modReceipt);
+            receipts.put(Receipt.Type.MODIFY, modReceipt);
         }
-        return contracts;
+        return receipts;
+    }
+
+    private void addMethods(BlockchainVisitor visitor) {
+        if (visitor.getMethods().isEmpty()) {
+            visitor.addMethods();
+        }
     }
 
     public Receipt modify(final String contractAddress, final BlockchainVisitor visitor, long accountGas) throws NoSuchContractMethod, ExceededGasException {
+        addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(visitor.getContractContent(),visitor.getContractKey(), contractAddress);
         String modMethodHash = callModMethod(smartContract, visitor.getMethod(Method.Type.MODIFY).getName(), visitor.getAccountAddress(), accountGas, visitor.getMethod(Method.Type.MODIFY).getArgs());
         return getReceipt(modMethodHash, contractAddress);
     }
 
     public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
+        addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(visitor.getContractContent(), visitor.getContractKey(), contractAddress);
         return callConstantMethod(smartContract, visitor.getMethod(Method.Type.RUN).getName(), visitor.getMethod(Method.Type.RUN).getArgs());
     }

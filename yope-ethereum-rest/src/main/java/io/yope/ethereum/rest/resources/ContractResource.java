@@ -5,6 +5,7 @@ import io.yope.ethereum.exceptions.ExceededGasException;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.services.BlockchainFacade;
 import io.yope.ethereum.visitor.BlockchainVisitor;
+import io.yope.ethereum.visitor.SimpleVisitor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class ContractResource<T> {
     private BlockchainFacade facade;
 
     @RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
-    public @ResponseBody EthereumResponse< Map<String, Receipt>> createContracts(@RequestBody final BlockchainVisitor visitor) {
+    public @ResponseBody EthereumResponse< Map<String, Receipt>> createContracts(@RequestBody final SimpleVisitor visitor) {
         try {
             return new EthereumResponse(facade.createContracts(visitor),200, "OK");
         } catch (ExceededGasException e) {

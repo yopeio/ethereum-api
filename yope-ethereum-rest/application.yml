@@ -1,2 +1,6 @@
+logging:
+  level:
+    io.yope.ethereum: DEBUG
+
 org.ethereum:
     address: http://ethereum.yope.io

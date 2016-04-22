@@ -23,7 +23,9 @@ public class Receipt implements Serializable {
     private String blockNumber;
     private String cumulativeGasUsed;
     private String gasUsed;
+    private Type type;
 
+    public enum Type {CREATE, MODIFY};
 
     public long getTransactionIndex() {
         return EthereumUtil.decryptQuantity(transactionIndex);

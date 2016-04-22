@@ -3,6 +3,7 @@ package io.yope.ethereum.visitor;
 
 import com.google.common.collect.Maps;
 import io.yope.ethereum.model.Method;
+import lombok.Getter;
 
 import java.util.Map;
 
@@ -10,6 +11,7 @@ public abstract class BlockchainVisitor {
 
     private String contractAddress;
     private String accountAddress;
+    @Getter
     private Map<Method.Type, Method> methods = Maps.newHashMap();
 
     public abstract String getContractKey();
