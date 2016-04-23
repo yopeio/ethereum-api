@@ -6,6 +6,7 @@ import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 
 import java.util.Map;
+import java.util.concurrent.Future;
 
 /**
  * Facade for blockchain management.
@@ -17,7 +18,7 @@ public interface BlockchainFacade {
      * @return
      * @throws ExceededGasException
      */
-    Map<Receipt.Type, Receipt> createContracts(BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod;
+    Map<Receipt.Type, Future<Receipt>> createContracts(BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod;
 
     /**
      * Modify a contract stored into the blockchain.
@@ -26,7 +27,7 @@ public interface BlockchainFacade {
      * @throws NoSuchContractMethod
      * @throws ExceededGasException
      */
-    Receipt modifyContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException;
+    Future<Receipt> modifyContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException;
 
     /**
      * Run a contract stored into the blockchain.

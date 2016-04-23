@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Map;
+import java.util.concurrent.Future;
 
 @Slf4j
 @AllArgsConstructor
@@ -20,12 +21,12 @@ public class EthereumFacade implements BlockchainFacade {
     private AccountService accountService;
 
     @Override
-    public Map<Receipt.Type, Receipt> createContracts(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
+    public Map<Receipt.Type, Future<Receipt>> createContracts(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
         return contractService.create(visitor, getAccountBalance(visitor.getAccountAddress()));
     }
 
     @Override
-    public Receipt modifyContract(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException {
+    public Future<Receipt> modifyContract(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException {
         return contractService.modify(contractAddress, visitor, getAccountBalance(visitor.getAccountAddress()));
     }
 

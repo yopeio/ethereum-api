@@ -16,10 +16,9 @@ import io.yope.ethereum.rpc.EthereumRpc;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
+import java.util.concurrent.*;
 
 import static io.yope.ethereum.utils.EthereumUtil.decryptQuantity;
 import static io.yope.ethereum.utils.EthereumUtil.removeLineBreaks;
@@ -31,16 +30,17 @@ public class ContractService {
     /*
     timeout in milliseconds of receipt waiting time.
      */
-    private static final long TIMEOUT = 500;
+    private static final long TIMEOUT = 10;
 
     private EthereumRpc ethereumRpc;
 
     private long gasPrice;
 
-    public Map<Receipt.Type, Receipt> create(final BlockchainVisitor visitor, final long accountGas)
+
+    public Map<Receipt.Type, Future<Receipt>> create(final BlockchainVisitor visitor, final long accountGas)
             throws ExceededGasException, NoSuchContractMethod {
         addMethods(visitor);
-        Map<Receipt.Type, Receipt> receipts = Maps.newHashMap();
+        Map<Receipt.Type, Future<Receipt>> receipts = Maps.newLinkedHashMap();
         CompileOutput compiled =
                 ethereumRpc.eth_compileSolidity(visitor.getContractContent()
                 );
@@ -56,36 +56,60 @@ public class ContractService {
 
         String txHash = ethereumRpc.eth_sendTransaction(
                 EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).gas(gas).gasPrice(gasPrice).build());
-        Receipt receipt = getReceipt(txHash, null);
-        log.debug("created contract: {}", receipt);
+        Future<Receipt> receipt = getFutureReceipt(txHash, null, Receipt.Type.CREATE);
         receipts.put(Receipt.Type.CREATE, receipt);
-
-        String contractAddr = receipts.values().iterator().next().getContractAddress();
-        if (ArrayUtils.isNotEmpty(visitor.getMethod(Method.Type.MODIFY).getArgs()) ) {
-            Receipt modReceipt = modify(contractAddr, visitor, accountGas);
-            log.debug("updated contract: {}", modReceipt);
-            receipts.put(Receipt.Type.MODIFY, modReceipt);
-        }
+        modify(visitor, accountGas, receipts);
         return receipts;
     }
 
-    private void addMethods(BlockchainVisitor visitor) {
-        if (visitor.getMethods().isEmpty()) {
-            visitor.addMethods();
-        }
-    }
-
-    public Receipt modify(final String contractAddress, final BlockchainVisitor visitor, long accountGas) throws NoSuchContractMethod, ExceededGasException {
+    public Future<Receipt> modify(final String contractAddress, final BlockchainVisitor visitor, long accountGas) throws NoSuchContractMethod, ExceededGasException {
         addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(visitor.getContractContent(),visitor.getContractKey(), contractAddress);
         String modMethodHash = callModMethod(smartContract, visitor.getMethod(Method.Type.MODIFY).getName(), visitor.getAccountAddress(), accountGas, visitor.getMethod(Method.Type.MODIFY).getArgs());
-        return getReceipt(modMethodHash, contractAddress);
+        return getFutureReceipt(modMethodHash, contractAddress, Receipt.Type.MODIFY);
     }
 
     public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
         addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(visitor.getContractContent(), visitor.getContractKey(), contractAddress);
         return callConstantMethod(smartContract, visitor.getMethod(Method.Type.RUN).getName(), visitor.getMethod(Method.Type.RUN).getArgs());
+    }
+
+    private void modify(BlockchainVisitor visitor, long accountGas, Map<Receipt.Type, Future<Receipt>> receipts) {
+        Future<Receipt> futureReceipt = receipts.values().iterator().next();
+        if (visitor.getMethod(Method.Type.MODIFY) != null) {
+//            ExecutorService threadpool = Executors.newSingleThreadExecutor();
+//            threadpool.submit(() -> {
+                try {
+                    Receipt r = getReceipt(futureReceipt);
+                    Future<Receipt> modReceipt = null;
+                    modReceipt = modify(r.getContractAddress(), visitor, accountGas);
+                    receipts.put(Receipt.Type.MODIFY, modReceipt);
+                    getReceipt(modReceipt);
+                } catch (ExceededGasException e) {
+                    log.error("exceed gas", e);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (NoSuchContractMethod e) {
+                    log.error("no contract", e);
+                } catch (ExecutionException e) {
+                    log.error("Execution Exception", e);
+                }
+//                return modReceipt;
+//            });
+        }
+    }
+
+    private Receipt getReceipt(Future<Receipt> futureReceipt) throws InterruptedException, ExecutionException {
+        Receipt r = futureReceipt.get();
+        log.debug("receipt: {}", r);
+        return r;
+    }
+
+    private void addMethods(BlockchainVisitor visitor) {
+        if (visitor.getMethods().isEmpty()) {
+            visitor.addMethods();
+        }
     }
 
     private void checkGas(String accountAddress, long accountGas, long gas) throws ExceededGasException {
@@ -126,17 +150,41 @@ public class ContractService {
         return factory.getContract(contractAddress);
     }
 
-    private Receipt getReceipt(String txHash, String contractAddress) {
-        while(ethereumRpc.eth_getTransactionReceipt(txHash) == null) {
-            try {
-                Thread.sleep(TIMEOUT);
-            } catch (InterruptedException e) {
+    private Future<Receipt> getFutureReceipt(String txHash, String contractAddress, Receipt.Type type) {
+        ExecutorService threadpool = Executors.newSingleThreadExecutor();
+        ReceiptTask task = new ReceiptTask(txHash, ethereumRpc, contractAddress, type);
+        return threadpool.submit(task);
+    }
+
+    private static class ReceiptTask implements Callable {
+
+        private String txHash;
+        private EthereumRpc ethereumRpc;
+        private String contractAddress;
+        private Receipt.Type type;
+
+        public ReceiptTask(String txHash, EthereumRpc ethereumRpc, String contractAddress, Receipt.Type type) {
+            this.txHash = txHash;
+            this.ethereumRpc = ethereumRpc;
+            this.contractAddress = contractAddress;
+            this.type = type;
+        }
+
+        @Override
+        public Receipt call() {
+            while(ethereumRpc.eth_getTransactionReceipt(txHash) == null) {
+                try {
+                    Thread.sleep(TIMEOUT);
+                } catch (InterruptedException e) {
+                }
             }
+            Receipt receipt = ethereumRpc.eth_getTransactionReceipt(txHash);
+            receipt.setType(type);
+            if (contractAddress != null) {
+                receipt.setContractAddress(contractAddress);
+            }
+            return receipt;
         }
-        Receipt receipt = ethereumRpc.eth_getTransactionReceipt(txHash);
-        if (StringUtils.isNotBlank(contractAddress)) {
-            receipt = receipt.toBuilder().contractAddress(contractAddress).build();
-        }
-        return receipt;
+
     }
 }
