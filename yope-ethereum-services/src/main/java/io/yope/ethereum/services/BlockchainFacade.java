@@ -2,6 +2,7 @@ package io.yope.ethereum.services;
 
 import com.cegeka.tetherj.NoSuchContractMethod;
 import io.yope.ethereum.exceptions.ExceededGasException;
+import io.yope.ethereum.model.Account;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 
@@ -39,9 +40,24 @@ public interface BlockchainFacade {
     <T> T runContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod;
 
     /**
-     * Get account balance.
+     * Get account from Ethereum with its balance.
      * @param address
      * @return
      */
-    long getAccountBalance(String address);
+    Account getAccount(String address);
+
+    /**
+     * Create an account in Ethereum and unlock it.
+     * @param passphrase
+     * @return
+     */
+    Account createAccount(String passphrase);
+
+    /**
+     * Unlock an already existent account.
+     * This method is already called during account creation. It is necessary just in case the Ethereum node is restarted.
+     * @param account
+     * @return
+     */
+    boolean unlockAccount(Account account);
 }

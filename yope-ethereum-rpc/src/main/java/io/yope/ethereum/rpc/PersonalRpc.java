@@ -1,5 +1,6 @@
 package io.yope.ethereum.rpc;
 
 public interface PersonalRpc {
-    String newAccount(String passphrase);
+    String personal_newAccount(String passphrase);
+    boolean personal_unlockAccount(String address, String passphrase);
 }
