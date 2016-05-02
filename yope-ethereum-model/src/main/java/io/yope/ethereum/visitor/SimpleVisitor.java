@@ -4,7 +4,7 @@ import io.yope.ethereum.model.Method;
 import lombok.*;
 import lombok.experimental.Wither;
 
-import static io.yope.ethereum.utils.EthereumUtil.removeLineBreaks;
+import static io.yope.ethereum.utils.EthereumUtil.adapt;
 
 /**
  * It is intended to be used only as example.
@@ -33,7 +33,7 @@ public class SimpleVisitor extends BlockchainVisitor {
 
     @Override
     public String getContractContent() {
-        return removeLineBreaks(solidityContract);
+        return adapt(solidityContract);
     }
 
     @Override

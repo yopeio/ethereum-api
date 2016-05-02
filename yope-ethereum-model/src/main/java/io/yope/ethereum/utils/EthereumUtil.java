@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 public class EthereumUtil {
 
-    public static String removeLineBreaks(final String content) {
+    public static String adapt(final String content) {
         return content.replace("\n", "").replace("\r", "");
     }
 
@@ -17,6 +17,15 @@ public class EthereumUtil {
         BufferedReader buffer = new BufferedReader(new InputStreamReader(stream));
         String collect = buffer.lines().collect(Collectors.joining("\n"));
         return collect.replace("\n", "").replace("\r", "");
+    }
+
+    public static String adapt(final String content, final int arguments) {
+        String collect = content.replace("\n", "")
+                .replaceAll("\\{", "'{'").replaceAll("\\}", "'}'");
+        for(int i = 0; i < arguments; i++) {
+            collect = collect.replaceAll("'\\{'"+ i +"'\\}'", "\\{" + i + "\\}");
+        }
+        return  collect.replaceAll("''","");
     }
 
     public static Long decryptQuantity(String quantity) {

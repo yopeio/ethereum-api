@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 @RestController
 @RequestMapping("/contracts")
@@ -19,9 +21,13 @@ public class ContractResource<T> {
     private BlockchainFacade facade;
 
     @RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
-    public @ResponseBody EthereumResponse< Map<String, Receipt>> createContracts(@RequestBody final SimpleVisitor visitor) {
+    public @ResponseBody EthereumResponse< Map<Receipt.Type, Future<Receipt>>> createContracts(@RequestBody final SimpleVisitor visitor) throws ExecutionException, InterruptedException {
         try {
-            return new EthereumResponse(facade.createContracts(visitor),200, "OK");
+            Map<Receipt.Type, Future<Receipt>> contracts = facade.createContracts(visitor);
+            for(Future<Receipt> future : contracts.values()) {
+                return new EthereumResponse(future.get(), 200, "OK");
+            }
+            return null;
         } catch (ExceededGasException e) {
             return new EthereumResponse(null,400, e.getMessage());
         } catch (NoSuchContractMethod e) {
@@ -31,7 +37,7 @@ public class ContractResource<T> {
 
 
     @RequestMapping(value = "/{contractAddress}", method = RequestMethod.PUT, consumes = "application/json", produces = "application/json")
-    public @ResponseBody EthereumResponse<Receipt> modifyContract(@PathVariable final String contractAddress, @RequestBody final BlockchainVisitor visitor) {
+    public @ResponseBody EthereumResponse<Receipt> modifyContract(@PathVariable final String contractAddress, @RequestBody final SimpleVisitor visitor) {
         try {
             return new EthereumResponse(facade.modifyContract(contractAddress, visitor),200, "OK");
         } catch (ExceededGasException e) {
@@ -42,7 +48,7 @@ public class ContractResource<T> {
     }
 
     @RequestMapping(value = "/{contractAddress}", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
-    public @ResponseBody EthereumResponse<T> runContract(@PathVariable final String contractAddress, @RequestBody final BlockchainVisitor visitor) throws NoSuchContractMethod {
+    public @ResponseBody EthereumResponse<T> runContract(@PathVariable final String contractAddress, @RequestBody final SimpleVisitor visitor) throws NoSuchContractMethod {
         return new EthereumResponse(facade.runContract(contractAddress, visitor),200, "OK");
     }
 

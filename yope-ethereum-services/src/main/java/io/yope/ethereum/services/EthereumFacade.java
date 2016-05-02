@@ -2,12 +2,10 @@ package io.yope.ethereum.services;
 
 import com.cegeka.tetherj.NoSuchContractMethod;
 import io.yope.ethereum.exceptions.ExceededGasException;
-import io.yope.ethereum.model.Method;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Map;
 import java.util.concurrent.Future;
