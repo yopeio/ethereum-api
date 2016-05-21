@@ -19,7 +19,7 @@ public interface BlockchainFacade {
      * @return
      * @throws ExceededGasException
      */
-    Map<Receipt.Type, Future<Receipt>> createContracts(BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod;
+    Future<Receipt> createContracts(BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod;
 
     /**
      * Modify a contract stored into the blockchain.

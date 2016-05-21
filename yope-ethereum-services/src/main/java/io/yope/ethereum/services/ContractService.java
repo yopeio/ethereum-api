@@ -9,15 +9,14 @@ import com.cegeka.tetherj.pojo.CompileOutput;
 import com.cegeka.tetherj.pojo.ContractData;
 import com.google.common.collect.Maps;
 import io.yope.ethereum.exceptions.ExceededGasException;
+import io.yope.ethereum.visitor.BlockchainVisitor;
 import io.yope.ethereum.model.EthTransaction;
 import io.yope.ethereum.model.Method;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.rpc.EthereumRpc;
-import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.sql.Time;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -47,29 +46,25 @@ public class ContractService {
      * @throws ExceededGasException
      * @throws NoSuchContractMethod
      */
-    public Map<Receipt.Type, Future<Receipt>> create(final BlockchainVisitor visitor, final long accountGas)
+    public Future<Receipt> create(final BlockchainVisitor visitor, final long accountGas)
             throws ExceededGasException, NoSuchContractMethod {
-        addMethods(visitor);
-        Map<Receipt.Type, Future<Receipt>> receipts = Maps.newLinkedHashMap();
         String content = getContent(visitor);
         CompileOutput compiled =
                 ethereumRpc.eth_compileSolidity(content
                 );
-        ContractData contract = compiled.getContractData().get(visitor.getContractKey());
+        ContractData contract = compiled.getContractData().get(visitor.getName());
         String code = contract.getCode();
         String subCode = code.substring(2, code.length());
 
         long gas = decryptQuantity(ethereumRpc.eth_estimateGas(
-                EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).build()
+                EthTransaction.builder().data(subCode).from(visitor.getAccount().getAddress()).build()
         ));
 
-        checkGas(visitor.getAccountAddress(), accountGas, gas);
+        checkGas(visitor.getAccount().getAddress(), accountGas, gas);
 
         String txHash = ethereumRpc.eth_sendTransaction(
-                EthTransaction.builder().data(subCode).from(visitor.getAccountAddress()).gas(gas).gasPrice(gasPrice).build());
-        Future<Receipt> receipt = getFutureReceipt(txHash, null, Receipt.Type.CREATE);
-        receipts.put(Receipt.Type.CREATE, receipt);
-        return receipts;
+                EthTransaction.builder().data(subCode).from(visitor.getAccount().getAddress()).gas(gas).gasPrice(gasPrice).build());
+        return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
     }
 
     /**
@@ -82,9 +77,9 @@ public class ContractService {
      * @throws ExceededGasException
      */
     public Future<Receipt> modify(final String contractAddress, final BlockchainVisitor visitor, final long accountGas) throws NoSuchContractMethod, ExceededGasException {
-        addMethods(visitor);
+//        addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(contractAddress, visitor);
-        String modMethodHash = callModMethod(smartContract, visitor.getMethod(Method.Type.MODIFY).getName(), visitor.getAccountAddress(), accountGas, visitor.getMethod(Method.Type.MODIFY).getArgs());
+        String modMethodHash = callModMethod(smartContract, visitor.getMethod(Method.Type.MODIFY).getName(), visitor.getAccount().getAddress(), accountGas, visitor.getMethod(Method.Type.MODIFY).getArgs());
         return getFutureReceipt(modMethodHash, contractAddress, Receipt.Type.MODIFY);
     }
 
@@ -97,21 +92,15 @@ public class ContractService {
      * @throws NoSuchContractMethod
      */
     public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
-        addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(contractAddress, visitor);
         return callConstantMethod(smartContract, visitor.getMethod(Method.Type.RUN).getName(), visitor.getMethod(Method.Type.RUN).getArgs());
     }
 
     private String getContent(BlockchainVisitor visitor) {
-        Object[] args = visitor.getMethod(Method.Type.MODIFY).getArgs();
-        return MessageFormat.format( adapt(visitor.getContractContent(), args.length), args);
+        Object[] args = visitor.getMethod(Method.Type.CREATE).getArgs();
+        return MessageFormat.format( adapt(visitor.getContent(), args.length), args);
     }
 
-    private void addMethods(final BlockchainVisitor visitor) {
-        if (visitor.getMethods().isEmpty()) {
-            visitor.addMethods();
-        }
-    }
 
     private void checkGas(final String accountAddress, final long accountGas, final long gas) throws ExceededGasException {
         if (accountGas < gas) {
@@ -123,7 +112,7 @@ public class ContractService {
         EthCall ethCall = smartContract.callConstantMethod(method, args);
         ethCall.setGasLimit(com.cegeka.tetherj.EthTransaction.maximumGasLimit);
         String callMethod = ethereumRpc.eth_call(ethCall.getCall());
-        return (T)ethCall.decodeOutput(callMethod)[0].toString();
+        return (T)ethCall.decodeOutput(callMethod)[0];
     }
 
     private String callModMethod(final EthSmartContract smartContract,final String method, final String accountAddress, final long accountGas, Object... args)
@@ -146,7 +135,7 @@ public class ContractService {
                 ethereumRpc.eth_compileSolidity(
                         getContent(visitor)
                 );
-        ContractData contract = compiled.getContractData().get(visitor.getContractKey());
+        ContractData contract = compiled.getContractData().get(visitor.getName());
         EthSmartContractFactory factory = new EthSmartContractFactory(contract);
         return factory.getContract(contractAddress);
     }

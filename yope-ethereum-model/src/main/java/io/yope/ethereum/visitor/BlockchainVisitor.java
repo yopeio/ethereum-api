@@ -1,50 +1,37 @@
 package io.yope.ethereum.visitor;
 
-
-import com.google.common.collect.Maps;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.yope.ethereum.model.Account;
 import io.yope.ethereum.model.Method;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+@ToString
 public abstract class BlockchainVisitor {
 
-    private String contractAddress;
-    private String accountAddress;
     @Getter
-    private Map<Method.Type, Method> methods = Maps.newHashMap();
+    @Setter
+    private Map<Method.Type, Method> methods;
 
-    public abstract String getContractKey();
+    @Setter
+    @Getter
+    private Account account;
 
-    public abstract String getContractFile();
+    @Getter
+    private String address;
 
-    public abstract String getContractContent();
+    public abstract String getContent();
 
-    public abstract void addMethods();
+    public abstract String getName();
 
-    public String getContractAddress() {
-        return contractAddress;
-    }
-
-    public void setContractAddress(String contractAddress) {
-        this.contractAddress = contractAddress;
-    }
-
-    public String getAccountAddress() {
-        return accountAddress;
-    }
-
-    public void setAccountAddress(String accountAddress) {
-        this.accountAddress = accountAddress;
-    }
-
-    public void addMethod(Method method) {
-        methods.put(method.getType(), method);
-    }
+    public abstract void addMethod(Method method);
 
     public Method getMethod(Method.Type type) {
         return methods.get(type);
     }
-
 
 }

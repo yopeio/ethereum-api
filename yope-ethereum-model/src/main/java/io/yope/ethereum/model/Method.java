@@ -13,7 +13,7 @@ import java.util.Arrays;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Method {
-    public enum Type {MODIFY, RUN};
+    public enum Type {CREATE, MODIFY, RUN};
     private Type type;
     @NotNull
     private Object[] args;

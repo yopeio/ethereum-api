@@ -12,8 +12,8 @@ public class EthereumUtil {
         return content.replace("\n", "").replace("\r", "");
     }
 
-    public static String removeLineBreaksFromFile(final String file) {
-        InputStream stream = EthereumUtil.class.getClass().getResourceAsStream(file);
+    public static String removeLineBreaksFromFile(final String file, final Class clazz) {
+        InputStream stream = clazz.getClassLoader().getResourceAsStream(file);
         BufferedReader buffer = new BufferedReader(new InputStreamReader(stream));
         String collect = buffer.lines().collect(Collectors.joining("\n"));
         return collect.replace("\n", "").replace("\r", "");
