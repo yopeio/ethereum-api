@@ -11,7 +11,7 @@ import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ToString
-public abstract class BlockchainVisitor {
+public abstract class BlockchainVisitor<T> {
 
     @Getter
     @Setter
@@ -23,6 +23,10 @@ public abstract class BlockchainVisitor {
 
     @Getter
     private String address;
+
+    @Setter
+    @Getter
+    private T model;
 
     public abstract String getContent();
 
