@@ -7,18 +7,15 @@ import com.cegeka.tetherj.NoSuchContractMethod;
 import com.cegeka.tetherj.crypto.CryptoUtil;
 import com.cegeka.tetherj.pojo.CompileOutput;
 import com.cegeka.tetherj.pojo.ContractData;
-import com.google.common.collect.Maps;
 import io.yope.ethereum.exceptions.ExceededGasException;
-import io.yope.ethereum.visitor.BlockchainVisitor;
 import io.yope.ethereum.model.EthTransaction;
-import io.yope.ethereum.model.Method;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.rpc.EthereumRpc;
+import io.yope.ethereum.visitor.BlockchainVisitor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.text.MessageFormat;
-import java.util.Map;
 import java.util.concurrent.*;
 
 import static io.yope.ethereum.utils.EthereumUtil.adapt;
@@ -67,6 +64,13 @@ public class ContractService {
         return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
     }
 
+    public Future<Receipt> sendTransaction(final String from, final String to, long amount) {
+        long gas = decryptQuantity(ethereumRpc.eth_estimateGas(EthTransaction.builder().from(from).to(to).amount(amount).build()));
+        String txHash = ethereumRpc.eth_sendTransaction(
+                EthTransaction.builder().from(from).gas(gas).gasPrice(gasPrice).build());
+        return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
+    }
+
     /**
      * Modify the contract state, through storage update, into Ethereum. It returns a future receipt.
      * @param contractAddress
@@ -79,7 +83,7 @@ public class ContractService {
     public Future<Receipt> modify(final String contractAddress, final BlockchainVisitor visitor, final long accountGas) throws NoSuchContractMethod, ExceededGasException {
 //        addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(contractAddress, visitor);
-        String modMethodHash = callModMethod(smartContract, visitor.getMethod(Method.Type.MODIFY).getName(), visitor.getAccount().getAddress(), accountGas, visitor.getMethod(Method.Type.MODIFY).getArgs());
+        String modMethodHash = callModMethod(smartContract, visitor.getMethod().getName(), visitor.getAccount().getAddress(), accountGas, visitor.getMethod().getArgs());
         return getFutureReceipt(modMethodHash, contractAddress, Receipt.Type.MODIFY);
     }
 
@@ -93,11 +97,11 @@ public class ContractService {
      */
     public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
         EthSmartContract smartContract = getSmartContract(contractAddress, visitor);
-        return callConstantMethod(smartContract, visitor.getMethod(Method.Type.RUN).getName(), visitor.getMethod(Method.Type.RUN).getArgs());
+        return callConstantMethod(smartContract, visitor.getMethod().getName(), visitor.getMethod().getArgs());
     }
 
     private String getContent(BlockchainVisitor visitor) {
-        Object[] args = visitor.getMethod(Method.Type.CREATE).getArgs();
+        Object[] args = visitor.getCreateArgs();
         return MessageFormat.format( adapt(visitor.getContent(), args.length), args);
     }
 

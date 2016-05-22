@@ -7,15 +7,20 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.Map;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ToString
 public abstract class BlockchainVisitor<T> {
 
+    public BlockchainVisitor(Method createMethod) {
+        this.createMethod = createMethod;
+    }
+
     @Getter
     @Setter
-    private Map<Method.Type, Method> methods;
+    private Method method;
+
+    @Getter
+    private Method createMethod;
 
     @Setter
     @Getter
@@ -32,10 +37,8 @@ public abstract class BlockchainVisitor<T> {
 
     public abstract String getName();
 
-    public abstract void addMethod(Method method);
-
-    public Method getMethod(Method.Type type) {
-        return methods.get(type);
+    public Object[] getCreateArgs() {
+        return createMethod.getArgs();
     }
 
 }

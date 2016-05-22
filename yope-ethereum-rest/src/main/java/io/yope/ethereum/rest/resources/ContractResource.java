@@ -3,8 +3,8 @@ package io.yope.ethereum.rest.resources;
 import com.cegeka.tetherj.NoSuchContractMethod;
 import io.yope.ethereum.exceptions.ExceededGasException;
 import io.yope.ethereum.model.Receipt;
+import io.yope.ethereum.rest.resources.sample.SampleVisitor;
 import io.yope.ethereum.services.BlockchainFacade;
-import io.yope.ethereum.visitor.sample.SampleVisitor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +22,7 @@ public class ContractResource<T> {
     @RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
     public @ResponseBody EthereumResponse< Map<Receipt.Type, Future<Receipt>>> createContracts(@RequestBody final SampleVisitor visitor) throws ExecutionException, InterruptedException {
         try {
-            Future<Receipt> contract = facade.createContracts(visitor);
+            Future<Receipt> contract = facade.createContract(visitor);
             return new EthereumResponse(contract.get(), 200, "OK");
 
         } catch (ExceededGasException e) {

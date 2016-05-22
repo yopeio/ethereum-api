@@ -21,7 +21,7 @@ public class EthereumFacade implements BlockchainFacade {
     private AccountService accountService;
 
     @Override
-    public Future<Receipt> createContracts(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
+    public Future<Receipt> createContract(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
         Account account = null;
         if (StringUtils.isBlank(visitor.getAccount().getAddress())) {
             account = createAccount(visitor.getAccount().getPassphrase());

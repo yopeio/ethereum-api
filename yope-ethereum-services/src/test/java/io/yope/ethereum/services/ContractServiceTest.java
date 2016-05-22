@@ -9,7 +9,6 @@ import io.yope.ethereum.rpc.EthereumRpc;
 import io.yope.ethereum.visitor.VisitorFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -32,43 +31,46 @@ public class ContractServiceTest {
 
     BlockchainVisitor visitor;
 
+    private Method create = VisitorFactory.buildMethod(Optional.empty(), Optional.of(new Object[]{5}));
+    private Method write = VisitorFactory.buildMethod(Optional.of("set"), Optional.of(new Object[]{10}));
+    private Method read = VisitorFactory.buildMethod(Optional.of("get"), Optional.empty());
+
     @Before
     public void init() throws MalformedURLException {
         EthereumRpc ethereumRpc = new EthereumResource(ethereumAddress).getGethRpc();
         contractService = new ContractService(ethereumRpc, 20000000000L);
-
-        Method createMethod = VisitorFactory.buildMethod(Method.Type.CREATE, Optional.empty(), Optional.of(new Object[]{5}));
-        Method runMethod = VisitorFactory.buildMethod(Method.Type.MODIFY, Optional.of("set"), Optional.of(new Object[]{10}));
-        Method modifyMethod = VisitorFactory.buildMethod(Method.Type.RUN, Optional.of("get"), Optional.empty());
-
         visitor = VisitorFactory.build(
                 accountAddress,
                 null,
                 "sample",
                 removeLineBreaksFromFile("sample.sol", ContractServiceTest.class),
-                createMethod, runMethod, modifyMethod);
+                null,
+                create);
     }
 
 
     @Test
-    @Ignore
+//    @Ignore
     public <T> void testCreate() throws Exception, ExceededGasException {
         Future<Receipt> createReceipt = contractService.create(visitor, ACCOUNT_GAS);
-        int res = execute(createReceipt);
+        visitor.setMethod(read);
+        int res = read(createReceipt);
         assertEquals(5, res);
-        Future<Receipt> modifyReceipt = modify(createReceipt);
-        res = execute(modifyReceipt);
+        visitor.setMethod(write);
+        Future<Receipt> writeReceipt = write(createReceipt);
+        visitor.setMethod(read);
+        res = read(writeReceipt);
         assertEquals(10, res);
     }
 
-    private int execute(Future<Receipt> receipt) throws Exception {
+    private int read(Future<Receipt> receipt) throws Exception {
         String contractAddress = waitFor(receipt);
         BigInteger result = contractService.<BigInteger>run(contractAddress, visitor);
         log.info("result: {}", result);
         return  result.intValue();
     }
 
-    private Future<Receipt> modify(Future<Receipt> receipt) throws Exception, ExceededGasException {
+    private Future<Receipt> write(Future<Receipt> receipt) throws Exception, ExceededGasException {
         String contractAddress = waitFor(receipt);
          return contractService.modify(contractAddress, visitor, ACCOUNT_GAS);
     }
