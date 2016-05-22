@@ -1,6 +1,7 @@
 package io.yope.ethereum.services;
 
 import io.yope.ethereum.exceptions.ExceededGasException;
+import io.yope.ethereum.model.Account;
 import io.yope.ethereum.visitor.BlockchainVisitor;
 import io.yope.ethereum.model.Method;
 import io.yope.ethereum.model.Receipt;
@@ -9,6 +10,7 @@ import io.yope.ethereum.rpc.EthereumRpc;
 import io.yope.ethereum.visitor.VisitorFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -16,6 +18,8 @@ import java.net.MalformedURLException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static io.yope.ethereum.utils.EthereumUtil.removeLineBreaksFromFile;
 import static org.junit.Assert.assertEquals;
@@ -29,6 +33,8 @@ public class ContractServiceTest {
 
     private ContractService contractService;
 
+    private AccountService accountService;
+
     BlockchainVisitor visitor;
 
     private Method create = VisitorFactory.buildMethod(Optional.empty(), Optional.of(new Object[]{5}));
@@ -39,6 +45,7 @@ public class ContractServiceTest {
     public void init() throws MalformedURLException {
         EthereumRpc ethereumRpc = new EthereumResource(ethereumAddress).getGethRpc();
         contractService = new ContractService(ethereumRpc, 20000000000L);
+        accountService = new AccountService(ethereumRpc);
         visitor = VisitorFactory.build(
                 accountAddress,
                 null,
@@ -48,9 +55,33 @@ public class ContractServiceTest {
                 create);
     }
 
+    @Test
+    @Ignore
+    public void testSendTransaction() throws InterruptedException, ExecutionException, TimeoutException {
+        Account test = accountService.createAccount("test");
+        long toBalance1 = getBalance(test.getAddress());
+        long fromBalance1 = getBalance(accountAddress);
+        Future<Receipt> receiptFuture = contractService.sendTransaction(accountAddress, test.getAddress(), 3549);
+        Receipt receipt = receiptFuture.get(10000, TimeUnit.MILLISECONDS);
+        receipt.getTransactionHash();
+        long fromBalance = getBalance(accountAddress);
+        long toBalance = getBalance(test.getAddress());
+        //0x8800cbf833fa6e2c43794324dca59a112c9d26e2c9fff52aaf5bd6ddf7741f51
+    }
+
+    private long getBalance(String addr) {
+        return accountService.getAccount(addr).getBalance();
+    }
 
     @Test
-//    @Ignore
+    @Ignore
+    public void testGetBalance() {
+        long balance = getBalance("0xca0c1a7e9bf7981dab434214c3e9bcc4518a6e2c");
+        long balance1 = getBalance(accountAddress);
+    }
+
+    @Test
+    @Ignore
     public <T> void testCreate() throws Exception, ExceededGasException {
         Future<Receipt> createReceipt = contractService.create(visitor, ACCOUNT_GAS);
         visitor.setMethod(read);

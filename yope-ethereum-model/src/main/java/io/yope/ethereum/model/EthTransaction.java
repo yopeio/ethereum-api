@@ -16,5 +16,5 @@ public class EthTransaction {
     private String to;
     private long gas;
     private long gasPrice;
-    private long amount;
+    private long value;
 }

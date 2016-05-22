@@ -9,6 +9,8 @@ import java.math.BigInteger;
 @AllArgsConstructor
 public class AccountService {
 
+    private static final long WEI_TO_SZABO = 1000000000000L;
+
     private EthereumRpc ethereumRpc;
 
     /**
@@ -49,7 +51,7 @@ public class AccountService {
         String balance = ethereumRpc.eth_getBalance(address, "latest");
         BigInteger latestBalance = new BigInteger(
                 "00" + balance.substring(2), 16);
-        return latestBalance.divide(BigInteger.valueOf(1000000000000L)).longValue();
+        return latestBalance.divide(BigInteger.valueOf(WEI_TO_SZABO)).longValue();
     }
 
 

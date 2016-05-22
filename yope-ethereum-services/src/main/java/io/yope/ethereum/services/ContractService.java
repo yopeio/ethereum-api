@@ -64,10 +64,17 @@ public class ContractService {
         return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
     }
 
+    /**
+     * Send a transaction from an account to another.
+     * @param from
+     * @param to
+     * @param amount
+     * @return
+     */
     public Future<Receipt> sendTransaction(final String from, final String to, long amount) {
-        long gas = decryptQuantity(ethereumRpc.eth_estimateGas(EthTransaction.builder().from(from).to(to).amount(amount).build()));
+        long gas = decryptQuantity(ethereumRpc.eth_estimateGas(EthTransaction.builder().from(from).to(to).value(amount).build()));
         String txHash = ethereumRpc.eth_sendTransaction(
-                EthTransaction.builder().from(from).gas(gas).gasPrice(gasPrice).build());
+                EthTransaction.builder().from(from).to(to).gas(gas).gasPrice(gasPrice).value(amount).build());
         return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
     }
 

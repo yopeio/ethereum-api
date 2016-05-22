@@ -58,4 +58,9 @@ public class EthereumFacade implements BlockchainFacade {
         return accountService.unlockAccount(account);
     }
 
+    @Override
+    public Future<Receipt> sendTransaction(String from, String to, long amount) {
+        return contractService.sendTransaction(from, to, amount);
+    }
+
 }

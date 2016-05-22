@@ -60,4 +60,14 @@ public interface BlockchainFacade {
      * @return
      */
     boolean unlockAccount(Account account);
+
+    /**
+     * Send eth from an account to another.
+     * @param from
+     * @param to
+     * @param amount
+     * @return
+     */
+    Future<Receipt> sendTransaction(String from, String to, long amount);
+
 }
