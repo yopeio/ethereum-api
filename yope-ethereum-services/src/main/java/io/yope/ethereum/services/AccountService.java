@@ -52,6 +52,7 @@ public class AccountService {
         BigInteger latestBalance = new BigInteger(
                 "00" + balance.substring(2), 16);
         return latestBalance.divide(BigInteger.valueOf(WEI_TO_SZABO)).longValue();
+//        return latestBalance.longValue();
     }
 
 

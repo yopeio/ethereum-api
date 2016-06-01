@@ -14,7 +14,7 @@ public class VisitorFactory {
         return Method.builder().name(name.isPresent() ? name.get() : null).args(args.isPresent() ? args.get() : null).build();
     }
 
-    public static<T> BlockchainVisitor build(final String accountAddress, final String pwd, final String name, final String content, final T model, Method method) {
+    public static<T> BlockchainVisitor build(final String contractAddress, final String accountAddress, final String pwd, final String name, final String content, final T model, Method method) {
         Account account = Account.builder().address(accountAddress).passphrase(pwd).build();
 
         BlockchainVisitor visitor = new BlockchainVisitor(method) {
@@ -31,6 +31,7 @@ public class VisitorFactory {
         };
         visitor.setAccount(account);
         visitor.setModel(model);
+        visitor.setAddress(contractAddress);
         return  visitor;
     }
 }

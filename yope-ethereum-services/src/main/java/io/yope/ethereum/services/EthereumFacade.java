@@ -10,26 +10,57 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @AllArgsConstructor
 public class EthereumFacade implements BlockchainFacade {
 
+    private static final long TIMEOUT = 10000;
+
     private ContractService contractService;
 
     private AccountService accountService;
 
+    private long registrationTip;
+
+    private String centralAccount;
+
     @Override
     public Future<Receipt> createContract(final BlockchainVisitor visitor) throws ExceededGasException, NoSuchContractMethod {
-        Account account = null;
+        Account account = verifyAccount(visitor);
+        return contractService.create(visitor, getAccount(account.getAddress()).getBalance());
+    }
+
+    private Account verifyAccount(BlockchainVisitor visitor) {
+        Account account;
         if (StringUtils.isBlank(visitor.getAccount().getAddress())) {
             account = createAccount(visitor.getAccount().getPassphrase());
+            sendTransaction(account);
             visitor.setAccount(account);
         } else {
             account = visitor.getAccount();
         }
-        return contractService.create(visitor, getAccount(account.getAddress()).getBalance());
+        return account;
+    }
+
+    private Receipt sendTransaction(Account account) {
+        if (registrationTip > 0) {
+            Future<Receipt> futureTransaction = this.sendTransaction(centralAccount, account.getAddress(), registrationTip);
+            try {
+                return futureTransaction.get(TIMEOUT, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.error("interrupted", e);
+            } catch (ExecutionException e) {
+                log.error("execution", e);
+            } catch (TimeoutException e) {
+                log.error("timeout", e);
+            }
+        }
+        return null;
     }
 
     @Override

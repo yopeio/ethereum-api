@@ -14,7 +14,7 @@ import java.util.concurrent.Future;
  */
 public interface BlockchainFacade {
     /**
-     * Write contracts into the blockchain.
+     * Create an account, if empty. Give ether fuel for gas. Write contracts into the blockchain.
      * @param visitor
      * @return
      * @throws ExceededGasException

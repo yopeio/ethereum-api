@@ -28,7 +28,9 @@ public class ContractService {
     /*
     timeout in milliseconds of receipt waiting time.
      */
-    private static final long TIMEOUT = 1000;
+    private static final long TIMEOUT = 10000;
+
+    private static final long GAS_LIMIT = 21000;
 
     private EthereumRpc ethereumRpc;
 
@@ -115,7 +117,7 @@ public class ContractService {
 
     private void checkGas(final String accountAddress, final long accountGas, final long gas) throws ExceededGasException {
         if (accountGas < gas) {
-            throw new ExceededGasException("gas exceeded for account " + accountAddress);
+            throw new ExceededGasException("gas exceeded for account " + accountAddress + ". Needed: " + gas + " Available: " + accountGas + " ");
         }
     }
 

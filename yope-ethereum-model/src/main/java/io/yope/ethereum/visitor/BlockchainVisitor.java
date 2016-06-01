@@ -27,6 +27,7 @@ public abstract class BlockchainVisitor<T> {
     private Account account;
 
     @Getter
+    @Setter
     private String address;
 
     @Setter
