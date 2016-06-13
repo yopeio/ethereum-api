@@ -63,7 +63,7 @@ public class ContractService {
 
         String txHash = ethereumRpc.eth_sendTransaction(
                 EthTransaction.builder().data(subCode).from(visitor.getAccount().getAddress()).gas(gas).gasPrice(gasPrice).build());
-        return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
+        return getFutureReceipt(txHash, null, Receipt.Type.CREATE, visitor.getAccount().getAddress());
     }
 
     /**
@@ -77,7 +77,7 @@ public class ContractService {
         long gas = decryptQuantity(ethereumRpc.eth_estimateGas(EthTransaction.builder().from(from).to(to).value(amount).build()));
         String txHash = ethereumRpc.eth_sendTransaction(
                 EthTransaction.builder().from(from).to(to).gas(gas).gasPrice(gasPrice).value(amount).build());
-        return getFutureReceipt(txHash, null, Receipt.Type.CREATE);
+        return getFutureReceipt(txHash, null, Receipt.Type.CREATE, to);
     }
 
     /**
@@ -93,7 +93,7 @@ public class ContractService {
 //        addMethods(visitor);
         EthSmartContract smartContract = getSmartContract(contractAddress, visitor);
         String modMethodHash = callModMethod(smartContract, visitor.getMethod().getName(), visitor.getAccount().getAddress(), accountGas, visitor.getMethod().getArgs());
-        return getFutureReceipt(modMethodHash, contractAddress, Receipt.Type.MODIFY);
+        return getFutureReceipt(modMethodHash, contractAddress, Receipt.Type.MODIFY, visitor.getAccount().getAddress());
     }
 
     /**
@@ -104,9 +104,9 @@ public class ContractService {
      * @return
      * @throws NoSuchContractMethod
      */
-    public<T> T run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
+    public Object[] run(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod {
         EthSmartContract smartContract = getSmartContract(contractAddress, visitor);
-        return callConstantMethod(smartContract, visitor.getMethod().getName(), visitor.getMethod().getArgs());
+        return callConstantMethod(smartContract, visitor.getMethod().getName(), visitor.getAccount().getAddress(), visitor.getMethod().getArgs());
     }
 
     private String getContent(BlockchainVisitor visitor) {
@@ -121,11 +121,12 @@ public class ContractService {
         }
     }
 
-    private<T> T callConstantMethod(final EthSmartContract smartContract, final String method, final Object... args) throws NoSuchContractMethod {
+    private Object[] callConstantMethod(final EthSmartContract smartContract, final String method, final String from, final Object... args) throws NoSuchContractMethod {
         EthCall ethCall = smartContract.callConstantMethod(method, args);
         ethCall.setGasLimit(com.cegeka.tetherj.EthTransaction.maximumGasLimit);
+        ethCall.setFrom(from);
         String callMethod = ethereumRpc.eth_call(ethCall.getCall());
-        return (T)ethCall.decodeOutput(callMethod)[0];
+        return ethCall.decodeOutput(callMethod);
     }
 
     private String callModMethod(final EthSmartContract smartContract,final String method, final String accountAddress, final long accountGas, Object... args)
@@ -153,9 +154,9 @@ public class ContractService {
         return factory.getContract(contractAddress);
     }
 
-    private Future<Receipt> getFutureReceipt(final String txHash, final String contractAddress, final Receipt.Type type) {
+    private Future<Receipt> getFutureReceipt(final String txHash, final String contractAddress, final Receipt.Type type, final String accountAddr) {
         ExecutorService threadpool = Executors.newSingleThreadExecutor();
-        ReceiptTask task = new ReceiptTask(txHash, ethereumRpc, contractAddress, type);
+        ReceiptTask task = new ReceiptTask(txHash, ethereumRpc, contractAddress, type, accountAddr);
         CompletionService<Receipt> completionService = new ExecutorCompletionService(threadpool);
         Future<Receipt> future = completionService.submit(task);
         threadpool.shutdown();
@@ -189,12 +190,18 @@ public class ContractService {
         private EthereumRpc ethereumRpc;
         private String contractAddress;
         private Receipt.Type type;
+        private String accountAddr;
 
         public ReceiptTask(final String txHash, final EthereumRpc ethereumRpc, final String contractAddress, final Receipt.Type type) {
+            this(txHash, ethereumRpc, contractAddress, type, null);
+        }
+
+        public ReceiptTask(final String txHash, final EthereumRpc ethereumRpc, final String contractAddress, final Receipt.Type type, final String accountAddr) {
             this.txHash = txHash;
             this.ethereumRpc = ethereumRpc;
             this.contractAddress = contractAddress;
             this.type = type;
+            this.accountAddr = accountAddr;
         }
 
         @Override
@@ -210,6 +217,7 @@ public class ContractService {
             if (contractAddress != null) {
                 receipt.setContractAddress(contractAddress);
             }
+            receipt.setAccountAddr(accountAddr);
             log.debug("receipt: {}", receipt);
             return receipt;
         }

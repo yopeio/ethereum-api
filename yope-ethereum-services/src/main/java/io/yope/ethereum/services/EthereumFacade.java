@@ -19,7 +19,7 @@ import java.util.concurrent.TimeoutException;
 @AllArgsConstructor
 public class EthereumFacade implements BlockchainFacade {
 
-    private static final long TIMEOUT = 10000;
+    private static final long TIMEOUT = 100000;
 
     private ContractService contractService;
 
@@ -69,7 +69,7 @@ public class EthereumFacade implements BlockchainFacade {
     }
 
     @Override
-    public<T> T runContract(final String contractAddress, final BlockchainVisitor visitor)
+    public Object[] runContract(final String contractAddress, final BlockchainVisitor visitor)
             throws NoSuchContractMethod {
         return contractService.run(contractAddress, visitor);
     }

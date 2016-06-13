@@ -3,6 +3,7 @@ package io.yope.ethereum.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.yope.ethereum.utils.EthereumUtil;
 import lombok.*;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 
@@ -11,7 +12,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-@ToString
+@ToString(of= {"contractAddress", "accountAddr"}, includeFieldNames = false)
 public class Receipt implements Serializable {
     @Getter
     private String transactionHash;
@@ -24,23 +25,34 @@ public class Receipt implements Serializable {
     private String cumulativeGasUsed;
     private String gasUsed;
     private Type type;
+    @Getter
+    @Setter
+    private String accountAddr;
 
     public enum Type {CREATE, MODIFY};
 
     public long getTransactionIndex() {
-        return EthereumUtil.decryptQuantity(transactionIndex);
+        return decrypt(transactionIndex);
     }
 
     public long getBlockNumber() {
-        return EthereumUtil.decryptQuantity(blockNumber);
+        return decrypt(blockNumber);
     }
 
     public long getCumulativeGasUsed() {
-        return EthereumUtil.decryptQuantity(cumulativeGasUsed);
+        return decrypt(cumulativeGasUsed);
     }
 
     public long getGasUsed() {
-        return EthereumUtil.decryptQuantity(gasUsed);
+        return decrypt(gasUsed);
+    }
+
+    private static long decrypt(final String data) {
+        if (StringUtils.isNotBlank(data)) {
+            return EthereumUtil.decryptQuantity(data);
+        }
+        return 0;
+
     }
 
 

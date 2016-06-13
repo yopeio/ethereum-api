@@ -37,7 +37,7 @@ public interface BlockchainFacade {
      * @return
      * @throws NoSuchContractMethod
      */
-    <T> T runContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod;
+    Object[] runContract(String contractAddress, BlockchainVisitor visitor) throws NoSuchContractMethod;
 
     /**
      * Get account from Ethereum with its balance.

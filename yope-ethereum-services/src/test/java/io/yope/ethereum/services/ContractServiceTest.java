@@ -30,6 +30,7 @@ public class ContractServiceTest {
     private static final long ACCOUNT_GAS = 100000;
     private static final String ethereumAddress = "http://ethereum.yope.io";
     private static final String accountAddress = "0x03733b713032e9040d04acd4720bedaa717378df";
+    private static String contractAddress = "";
 
     private ContractService contractService;
 
@@ -46,7 +47,9 @@ public class ContractServiceTest {
         EthereumRpc ethereumRpc = new EthereumResource(ethereumAddress).getGethRpc();
         contractService = new ContractService(ethereumRpc, 20000000000L);
         accountService = new AccountService(ethereumRpc);
+
         visitor = VisitorFactory.build(
+                contractAddress,
                 accountAddress,
                 null,
                 "sample",
@@ -96,9 +99,9 @@ public class ContractServiceTest {
 
     private int read(Future<Receipt> receipt) throws Exception {
         String contractAddress = waitFor(receipt);
-        BigInteger result = contractService.<BigInteger>run(contractAddress, visitor);
+        Object[] result = contractService.<BigInteger>run(contractAddress, visitor);
         log.info("result: {}", result);
-        return  result.intValue();
+        return  ((BigInteger)result[0]).intValue();
     }
 
     private Future<Receipt> write(Future<Receipt> receipt) throws Exception, ExceededGasException {
