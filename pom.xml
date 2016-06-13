@@ -7,13 +7,7 @@
     <groupId>io.yope</groupId>
     <artifactId>ethereum-api</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>yope-ethereum-rpc</module>
-        <module>yope-ethereum-rest</module>
-        <module>yope-ethereum-services</module>
-        <module>yope-ethereum-model</module>
-    </modules>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -99,6 +93,11 @@
                 <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>com.cegeka</groupId>
+                <artifactId>tetherj</artifactId>
+                <version>1.0.11</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -143,6 +142,10 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cegeka</groupId>
+            <artifactId>tetherj</artifactId>
         </dependency>
     </dependencies>
 
