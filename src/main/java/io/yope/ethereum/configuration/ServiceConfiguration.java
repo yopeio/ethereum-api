@@ -1,5 +1,6 @@
 package io.yope.ethereum.configuration;
 
+import io.yope.ethereum.model.Block;
 import io.yope.ethereum.rpc.EthereumRpc;
 import io.yope.ethereum.rpc.services.AccountService;
 import io.yope.ethereum.rpc.services.ContractService;
@@ -27,6 +28,9 @@ public class ServiceConfiguration {
     @Value("${io.yope.centralAddress}")
     private String centralAccount;
 
+    @Value("${io.yope.password}")
+    private String password;
+
     @Bean
     public EthereumFacade facade(final ContractService contractService, final AccountService accountService) {
         return new EthereumFacade(contractService, accountService, registrationTip, centralAccount);
@@ -34,6 +38,8 @@ public class ServiceConfiguration {
 
     @Bean
     public ContractService contractService(EthereumRpc ethereumRpc) {
+        boolean unlocked = ethereumRpc.personal_unlockAccount(centralAccount, password);
+        log.info("central wallet {} unlocked: {}", centralAccount, unlocked);
         long gasPrice = decryptQuantity(ethereumRpc.eth_gasPrice());
         return new ContractService(ethereumRpc, gasPrice);
     }

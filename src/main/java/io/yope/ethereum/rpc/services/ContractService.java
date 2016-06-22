@@ -7,7 +7,9 @@ import com.cegeka.tetherj.NoSuchContractMethod;
 import com.cegeka.tetherj.crypto.CryptoUtil;
 import com.cegeka.tetherj.pojo.CompileOutput;
 import com.cegeka.tetherj.pojo.ContractData;
+import com.cegeka.tetherj.pojo.Transaction;
 import io.yope.ethereum.exceptions.ExceededGasException;
+import io.yope.ethereum.model.Block;
 import io.yope.ethereum.model.EthTransaction;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.rpc.EthereumRpc;
@@ -28,9 +30,7 @@ public class ContractService {
     /*
     timeout in milliseconds of receipt waiting time.
      */
-    private static final long TIMEOUT = 10000;
-
-    private static final long GAS_LIMIT = 21000;
+    private static final long TIMEOUT = 100000;
 
     private EthereumRpc ethereumRpc;
 
@@ -58,11 +58,10 @@ public class ContractService {
         long gas = decryptQuantity(ethereumRpc.eth_estimateGas(
                 EthTransaction.builder().data(subCode).from(visitor.getAccount().getAddress()).build()
         ));
-
         checkGas(visitor.getAccount().getAddress(), accountGas, gas);
-
         String txHash = ethereumRpc.eth_sendTransaction(
                 EthTransaction.builder().data(subCode).from(visitor.getAccount().getAddress()).gas(gas).gasPrice(gasPrice).build());
+        Future<Receipt> future = null;
         return getFutureReceipt(txHash, null, Receipt.Type.CREATE, visitor.getAccount().getAddress());
     }
 
@@ -75,9 +74,19 @@ public class ContractService {
      */
     public Future<Receipt> sendTransaction(final String from, final String to, long amount) {
         long gas = decryptQuantity(ethereumRpc.eth_estimateGas(EthTransaction.builder().from(from).to(to).value(amount).build()));
-        String txHash = ethereumRpc.eth_sendTransaction(
-                EthTransaction.builder().from(from).to(to).gas(gas).gasPrice(gasPrice).value(amount).build());
-        return getFutureReceipt(txHash, null, Receipt.Type.CREATE, to);
+        String txHash = null;
+        try {
+//            Block latest = ethereumRpc.eth_getBlockByNumber("latest", false);
+//            long nonce = decryptQuantity(latest.getNonce());
+
+            txHash = ethereumRpc.eth_sendTransaction(
+                    EthTransaction.builder().from(from).to(to).gas(gas).gasPrice(gasPrice).value(amount).build());
+            return getFutureReceipt(txHash, null, Receipt.Type.CREATE, to);
+
+        } catch (RuntimeException e) {
+            log.error("transaction error", e);
+        }
+        return null;
     }
 
     /**
@@ -112,6 +121,7 @@ public class ContractService {
     private String getContent(BlockchainVisitor visitor) {
         Object[] args = visitor.getCreateArgs();
         return MessageFormat.format( adapt(visitor.getContent(), args.length), args);
+//        return visitor.getContent();
     }
 
 
@@ -159,24 +169,24 @@ public class ContractService {
         ReceiptTask task = new ReceiptTask(txHash, ethereumRpc, contractAddress, type, accountAddr);
         CompletionService<Receipt> completionService = new ExecutorCompletionService(threadpool);
         Future<Receipt> future = completionService.submit(task);
-        threadpool.shutdown();
-        try {
-            threadpool.awaitTermination(TIMEOUT, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            log.warn("Recepit task interrupted " +
-                    "Transaction hash {}, contract address {}, type {} ",
-                    txHash, contractAddress, type);
-        } finally {
-            if (!threadpool.isTerminated()) {
-                log.warn("cancel non-finished tasks. " +
-                        "Transaction hash {}, contract address {}, type {} ",
-                        txHash, contractAddress, type);
-            }
-            threadpool.shutdownNow();
-            log.warn("forced shutdown finished " +
-                            "Transaction hash {}, contract address {}, type {} ",
-                            txHash, contractAddress, type);
-        }
+//        threadpool.shutdown();
+//        try {
+//            threadpool.awaitTermination(TIMEOUT, TimeUnit.MILLISECONDS);
+//        } catch (InterruptedException e) {
+//            log.warn("Recepit task interrupted " +
+//                    "Transaction hash {}, contract address {}, type {} ",
+//                    txHash, contractAddress, type);
+//        } finally {
+//            if (!threadpool.isTerminated()) {
+//                log.warn("cancel non-finished tasks. " +
+//                        "Transaction hash {}, contract address {}, type {} ",
+//                        txHash, contractAddress, type);
+//            }
+//            threadpool.shutdownNow();
+//            log.warn("forced shutdown finished " +
+//                            "Transaction hash {}, contract address {}, type {} ",
+//                            txHash, contractAddress, type);
+//        }
 
         return future;
     }
@@ -206,9 +216,11 @@ public class ContractService {
 
         @Override
         public Receipt call() {
+            Transaction transaction = ethereumRpc.eth_getTransactionByHash(txHash);
             while(ethereumRpc.eth_getTransactionReceipt(txHash) == null) {
+                log.debug("waiting for {} receipt...", txHash);
                 try {
-                    Thread.sleep(TIMEOUT);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                 }
             }

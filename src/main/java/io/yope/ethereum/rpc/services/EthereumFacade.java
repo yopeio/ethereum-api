@@ -34,6 +34,17 @@ public class EthereumFacade implements BlockchainFacade {
         return contractService.create(visitor, getAccount(account.getAddress()).getBalance());
     }
 
+    @Override
+    public Future<Receipt> modifyContract(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException {
+        return contractService.modify(contractAddress, visitor, getAccount(visitor.getAccount().getAddress()).getBalance());
+    }
+
+    @Override
+    public Object[] runContract(final String contractAddress, final BlockchainVisitor visitor)
+            throws NoSuchContractMethod {
+        return contractService.run(contractAddress, visitor);
+    }
+
     private Account verifyAccount(BlockchainVisitor visitor) {
         Account account;
         if (StringUtils.isBlank(visitor.getAccount().getAddress())) {
@@ -47,9 +58,10 @@ public class EthereumFacade implements BlockchainFacade {
     }
 
     private Receipt sendTransaction(Account account) {
+        log.debug("sending transaction ");
         if (registrationTip > 0) {
-            Future<Receipt> futureTransaction = this.sendTransaction(centralAccount, account.getAddress(), registrationTip);
             try {
+                Future<Receipt> futureTransaction = this.sendTransaction(centralAccount, account.getAddress(), registrationTip);
                 return futureTransaction.get(TIMEOUT, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 log.error("interrupted", e);
@@ -57,20 +69,11 @@ public class EthereumFacade implements BlockchainFacade {
                 log.error("execution", e);
             } catch (TimeoutException e) {
                 log.error("timeout", e);
+            } catch (RuntimeException e) {
+                log.error("generic", e);
             }
         }
         return null;
-    }
-
-    @Override
-    public Future<Receipt> modifyContract(final String contractAddress, final BlockchainVisitor visitor) throws NoSuchContractMethod, ExceededGasException {
-        return contractService.modify(contractAddress, visitor, getAccount(visitor.getAccount().getAddress()).getBalance());
-    }
-
-    @Override
-    public Object[] runContract(final String contractAddress, final BlockchainVisitor visitor)
-            throws NoSuchContractMethod {
-        return contractService.run(contractAddress, visitor);
     }
 
     @Override

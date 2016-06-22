@@ -17,4 +17,5 @@ public class EthTransaction {
     private long gas;
     private long gasPrice;
     private long value;
+//    private long nonce;
 }
