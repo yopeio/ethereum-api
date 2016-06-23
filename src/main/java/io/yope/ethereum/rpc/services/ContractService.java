@@ -9,7 +9,6 @@ import com.cegeka.tetherj.pojo.CompileOutput;
 import com.cegeka.tetherj.pojo.ContractData;
 import com.cegeka.tetherj.pojo.Transaction;
 import io.yope.ethereum.exceptions.ExceededGasException;
-import io.yope.ethereum.model.Block;
 import io.yope.ethereum.model.EthTransaction;
 import io.yope.ethereum.model.Receipt;
 import io.yope.ethereum.rpc.EthereumRpc;
@@ -109,7 +108,7 @@ public class ContractService {
      * Run a contract method, registered into Ethereum. It returns a generic value.
      * @param contractAddress
      * @param visitor
-     * @param <T>
+     * @param
      * @return
      * @throws NoSuchContractMethod
      */
@@ -168,27 +167,7 @@ public class ContractService {
         ExecutorService threadpool = Executors.newSingleThreadExecutor();
         ReceiptTask task = new ReceiptTask(txHash, ethereumRpc, contractAddress, type, accountAddr);
         CompletionService<Receipt> completionService = new ExecutorCompletionService(threadpool);
-        Future<Receipt> future = completionService.submit(task);
-//        threadpool.shutdown();
-//        try {
-//            threadpool.awaitTermination(TIMEOUT, TimeUnit.MILLISECONDS);
-//        } catch (InterruptedException e) {
-//            log.warn("Recepit task interrupted " +
-//                    "Transaction hash {}, contract address {}, type {} ",
-//                    txHash, contractAddress, type);
-//        } finally {
-//            if (!threadpool.isTerminated()) {
-//                log.warn("cancel non-finished tasks. " +
-//                        "Transaction hash {}, contract address {}, type {} ",
-//                        txHash, contractAddress, type);
-//            }
-//            threadpool.shutdownNow();
-//            log.warn("forced shutdown finished " +
-//                            "Transaction hash {}, contract address {}, type {} ",
-//                            txHash, contractAddress, type);
-//        }
-
-        return future;
+        return completionService.submit(task);
     }
 
     /**
@@ -196,6 +175,7 @@ public class ContractService {
      */
     private static class ReceiptTask implements Callable {
 
+        private static final long RECEIPT_TIMEOUT = 1000;
         private String txHash;
         private EthereumRpc ethereumRpc;
         private String contractAddress;
@@ -218,9 +198,9 @@ public class ContractService {
         public Receipt call() {
             Transaction transaction = ethereumRpc.eth_getTransactionByHash(txHash);
             while(ethereumRpc.eth_getTransactionReceipt(txHash) == null) {
-                log.debug("waiting for {} receipt...", txHash);
+                log.trace("waiting for {} receipt...", txHash);
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(RECEIPT_TIMEOUT);
                 } catch (InterruptedException e) {
                 }
             }
