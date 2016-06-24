@@ -58,7 +58,6 @@ public class EthereumFacade implements BlockchainFacade {
     }
 
     private Receipt sendTransaction(Account account) {
-        log.debug("sending transaction ");
         if (registrationTip > 0) {
             try {
                 Future<Receipt> futureTransaction = this.sendTransaction(centralAccount, account.getAddress(), registrationTip);
